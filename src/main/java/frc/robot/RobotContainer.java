@@ -9,6 +9,10 @@ import edu.wpi.first.wpilibj.XboxController;
 
 import java.util.List;
 
+import com.pathplanner.lib.PathPlanner;
+import com.pathplanner.lib.PathPlannerTrajectory;
+import com.pathplanner.lib.commands.PPSwerveControllerCommand;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -82,13 +86,6 @@ public class RobotContainer {
     // Add kinematics to ensure max speed is actually obeyed
     .setKinematics(Constants.kinematics);
 
-    TrajectoryConfig configRev =
-    new TrajectoryConfig(
-        Constants.MAX_VELOCITY_METERS_PER_SECOND/2,
-        Constants.MAX_VELOCITY_METERS_PER_SECOND/3)
-    // Add kinematics to ensure max speed is actually obeyed
-    .setKinematics(Constants.kinematics).setReversed(true);
-
     Trajectory exampleTrajectory =
         TrajectoryGenerator.generateTrajectory(
         // Start at the origin facing the +X direction
@@ -99,15 +96,11 @@ public class RobotContainer {
         new Pose2d(2, 0, new Rotation2d(0)),
         config);
 
-    Trajectory exampleTrajectory1 =
-        TrajectoryGenerator.generateTrajectory(
-        // Start at the origin facing the +X direction
-        new Pose2d(1, 0, new Rotation2d(0)),
-        // Pass through these  interior waypoints
-        List.of(new Translation2d(.5, 0)),
-        // End 
-        new Pose2d(0, 0, new Rotation2d(0)),
-        configRev);
+    // This will load the file "Example Path.path" and generate it with a max velocity of 8 m/s and a max acceleration of 5 m/s^2
+    PathPlannerTrajectory examplePath = PathPlanner.loadPath(
+      "Test",
+      Constants.MAX_VELOCITY_METERS_PER_SECOND/3,
+      Constants.MAX_VELOCITY_METERS_PER_SECOND/5);
     
 
     var thetaController =
@@ -115,34 +108,21 @@ public class RobotContainer {
       Constants.kPThetaController, 0, 0, Constants.kThetaControllerConstraints);
       thetaController.enableContinuousInput(-Math.PI, Math.PI);
 
-    SwerveAutoCommand swerveCommand = new SwerveAutoCommand(
-      exampleTrajectory, 
-      drivetrain::getPose, 
-      Constants.kinematics, 
-      new PIDController(Constants.kPXController, 0, 0), 
-      new PIDController(Constants.kPYController, 0, 0), 
-      thetaController, 
-      0.0, 
-      drivetrain::setModuleStates, 
-      drivetrain);
-
-    SwerveAutoCommand swerveCommand1 = new SwerveAutoCommand(
-      exampleTrajectory1, 
-      drivetrain::getPose, 
-      Constants.kinematics, 
-      new PIDController(Constants.kPXController, 0, 0), 
-      new PIDController(Constants.kPYController, 0, 0), 
-      thetaController, 
-      0.0, 
-      drivetrain::setModuleStates, 
-      drivetrain);
+      PPSwerveControllerCommand  swerveCommand = new PPSwerveControllerCommand(
+        examplePath, 
+        drivetrain::getPose, 
+        Constants.kinematics, 
+        new PIDController(Constants.kPXController, 0, 0), 
+        new PIDController(Constants.kPYController, 0, 0), 
+        thetaController, 
+        drivetrain::setModuleStates, 
+        drivetrain);
 
     // Reset odometry to the starting pose of the trajectory.
     drivetrain.resetOdometry(exampleTrajectory.getInitialPose());
 
     // Run path following command, then stop at the end.
     return swerveCommand
-    .andThen(swerveCommand1)
     .andThen(() -> drivetrain.stopDrive());
 
   }
