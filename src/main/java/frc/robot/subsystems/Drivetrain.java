@@ -7,10 +7,12 @@ package frc.robot.subsystems;
 import com.ctre.phoenix.sensors.PigeonIMU;
 import com.kauailabs.navx.frc.AHRS;
 import com.swervedrivespecialties.swervelib.Mk3SwerveModuleHelper;
+import com.swervedrivespecialties.swervelib.Mk4ModuleConfiguration;
 import com.swervedrivespecialties.swervelib.Mk4SwerveModuleHelper;
 import com.swervedrivespecialties.swervelib.SdsModuleConfigurations;
 import com.swervedrivespecialties.swervelib.SwerveModule;
 
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -57,6 +59,10 @@ public class Drivetrain extends SubsystemBase {
   private final SwerveModule backLeftModule;
   private final SwerveModule backRightModule;
 
+  // Create a new SimpleMotorFeedforward with gains kS, kV, and kA
+  SimpleMotorFeedforward feedforwardRight = new SimpleMotorFeedforward(Constants.kSRight, Constants.kVRight, Constants.kARight);
+  SimpleMotorFeedforward feedforwardLeft = new SimpleMotorFeedforward(Constants.kSLeft, Constants.kVLeft, Constants.kALeft);
+
   ShuffleboardTab tab = Shuffleboard.getTab("Drivetrain");
 
   public Drivetrain() {
@@ -67,7 +73,6 @@ public class Drivetrain extends SubsystemBase {
                 } catch (Exception e) {
                 }
             }).start();
-    
         
     // There are 4 methods you can call to create your swerve modules.
     // The method you use depends on what motors you are using.
@@ -88,13 +93,13 @@ public class Drivetrain extends SubsystemBase {
 
     // By default we will use Falcon 500s in standard configuration. But if you use a different configuration or motors
     // you MUST change it. If you do not, your code will crash on startup.
-    // FIXME Setup motor configuration
+    // Setup motor configuration
     frontLeftModule = Mk4SwerveModuleHelper.createFalcon500(
             // This parameter is optional, but will allow you to see the current state of the module on the dashboard.
             tab.getLayout("Front Left Module", BuiltInLayouts.kList)
                     .withSize(2, 4)
                     .withPosition(0, 0),
-            // This can either be STANDARD or FAST depending on your gear configuration
+            
             Mk4SwerveModuleHelper.GearRatio.L1,
             // This is the ID of the drive motor
             FRONT_LEFT_MODULE_DRIVE_MOTOR,
@@ -139,6 +144,8 @@ public class Drivetrain extends SubsystemBase {
             BACK_RIGHT_MODULE_STEER_ENCODER,
             BACK_RIGHT_MODULE_STEER_OFFSET
     );
+
+    
   }
 
   /**
@@ -204,10 +211,14 @@ public class Drivetrain extends SubsystemBase {
   public void setModuleStates(SwerveModuleState[] states) {
         SwerveDriveKinematics.desaturateWheelSpeeds(
             states, Constants.MAX_VELOCITY_METERS_PER_SECOND);
-            frontLeftModule.set(states[0].speedMetersPerSecond, states[0].angle.getRadians());
-            frontRightModule.set(states[1].speedMetersPerSecond, states[1].angle.getRadians());
-            backLeftModule.set(states[2].speedMetersPerSecond, states[2].angle.getRadians());
-            backRightModule.set(states[3].speedMetersPerSecond, states[3].angle.getRadians());
+
+            SmartDashboard.putNumber("output", states[0].speedMetersPerSecond);
+            SmartDashboard.putNumber("feedforward", feedforwardLeft.calculate(states[0].speedMetersPerSecond));
+            
+            frontLeftModule.set(feedforwardLeft.calculate(states[0].speedMetersPerSecond), states[0].angle.getRadians());
+            frontRightModule.set(feedforwardRight.calculate(states[1].speedMetersPerSecond), states[1].angle.getRadians());
+            backLeftModule.set(feedforwardLeft.calculate(states[2].speedMetersPerSecond), states[2].angle.getRadians());
+            backRightModule.set(feedforwardRight.calculate(states[3].speedMetersPerSecond), states[3].angle.getRadians());
       }
 
   public void stopDrive(){

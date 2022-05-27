@@ -96,12 +96,19 @@ public final class Constants {
 
 
     public static final double kPThetaController = 3.5;
-    public static final double kPXController = 1;
-    public static final double kPYController = 1;
+    public static final double kPXController = 1.4972;
+    public static final double kPYController = 1.4972;
 
         // Constraint for the motion profiled robot angle controller
     public static final TrapezoidProfile.Constraints kThetaControllerConstraints =
     new TrapezoidProfile.Constraints(
         MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND/2, MAX_ANGULAR_VELOCITY_RADIANS_PER_SECOND/4);
+    public static final double kSRight = 0.58267;
+    public static final double kVRight = 2.7308;
+    public static final double kARight = 0.069151;
+    public static final double kSLeft = 0.58267;
+    public static final double kVLeft = 2.7308;
+    public static final double kALeft = 0.069151;
+
     
 }
